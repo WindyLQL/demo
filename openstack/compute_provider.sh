@@ -12,6 +12,7 @@ sed -i '$a 10.30.10.145 controller' /etc/hosts
 sed -i '$a 10.30.10.141 compute' /etc/hosts
 
 
+#compute chrony
 apt install chrony -y
 sed 's#pool 2.debian.pool.ntp.org offline iburst#\#pool 2.debian.pool.ntp.org offline iburst#g' -i /etc/chrony/chrony.conf
 sed 's/# NTP server./server controller iburst/g' -i /etc/chrony/chrony.conf
@@ -111,11 +112,6 @@ service nova-compute restart
 . admin-openrc
 openstack compute service list
 
-
-
-
-
-
 #compute node networking
 apt install neutron-linuxbridge-agent -y
 
@@ -154,40 +150,8 @@ sed 's#\[keystone_authtoken\]$#\[keystone_authtoken\]\nauth_uri = http://control
 
 
 
-#self-service network start
-################################################################################################
-
-vim /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-[linux_bridge]
-physical_interface_mappings = provider:enp0s3
-
-[vxlan]
-enable_vxlan = True
-local_ip = 10.30.10.141
-l2_population = True
-
-[securitygroup]
-...
-enable_security_group = True
-firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
 
 
-sed 's#\#physical_interface_mappings =#physical_interface_mappings = provider:enp0s3#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#enable_vxlan = true#enable_vxlan = True#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-
-
-sed 's#\#local_ip = <None>#local_ip = 10.30.10.141#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#l2_population = false#l2_population = True#g'  -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#enable_security_group = true#enable_security_group = True#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#firewall_driver = <None>#firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-
-
-################################################################################################
-#self-service network end
-
-
-##provider network start
-#--------------------------------------------------------------------------------------------------------
 #vim /etc/neutron/plugins/ml2/linuxbridge_agent.ini
 #[linux_bridge]
 #physical_interface_mappings = provider:enp0s3
@@ -205,8 +169,6 @@ sed 's#\#physical_interface_mappings =#physical_interface_mappings = provider:en
 sed 's#\#enable_vxlan = true#enable_vxlan = False#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
 sed 's#\#enable_security_group = true#enable_security_group = True#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
 sed 's#\#firewall_driver = <None>#firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-#--------------------------------------------------------------------------------------------------------
-##provider network end
 
 
 
@@ -228,6 +190,7 @@ sed 's#\#firewall_driver = <None>#firewall_driver = neutron.agent.linux.iptables
 
 echo -e "[neutron]\nurl = http://controller:9696\nauth_url = http://controller:35357\nauth_type = password\nproject_domain_name = Default\nuser_domain_name = Default\nregion_name = RegionOne\nproject_name = service\nusername = neutron\npassword = a6fef16aa0395fa62270\n" >> /etc/nova/nova.conf
 
+service nova-compute restart
 service nova-compute restart
 service neutron-linuxbridge-agent restart
 

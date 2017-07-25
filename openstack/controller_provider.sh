@@ -75,7 +75,7 @@ GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'a6fef16aa039
 exit
 
 apt install keystone -y
-#vim /etc/keystone/keystone.conf
+vim /etc/keystone/keystone.conf
 
 sed 's#connection = sqlite:////var/lib/keystone/keystone.db#connection = mysql+pymysql://keystone:a6fef16aa0395fa62270@controller/keystone#g' -i /etc/keystone/keystone.conf
 
@@ -369,6 +369,8 @@ sed 's#\[database\]#transport_url = rabbit://openstack:a6fef16aa0395fa62270@cont
 echo -e "[keystone_authtoken]\nauth_uri = http://controller:5000\nauth_url = http://controller:35357\nmemcached_servers = controller:11211\nauth_type = password\nproject_domain_name = Default\nuser_domain_name = Default\nproject_name = service\nusername = nova\npassword = a6fef16aa0395fa62270\n" >> /etc/nova/nova.conf
 
 
+
+###############配置错误
 echo -e "[vnc]\nvncserver_listen = \$my_ip\nvncserver_proxyclient_address = \$my_ip\n" >> /etc/nova/nova.conf
 echo -e "[glance]\napi_servers = http://controller:9292\n" >> /etc/nova/nova.conf
 sed 's#lock_path=/var/lock/nova#lock_path = /var/lib/nova/tmp#g' -i /etc/nova/nova.conf
@@ -403,7 +405,6 @@ GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'%' \
 exit
 . admin-openrc
 
-#need input a6fef16aa0395fa62270
  openstack user create --domain default --password-prompt neutron
  openstack role add --project service --user neutron admin
 
@@ -420,183 +421,13 @@ openstack endpoint create --region RegionOne \
   network admin http://controller:9696
 
 
-
-
-
-##self-service networks start
-#-------------------------------------------------------
-apt install neutron-server neutron-plugin-ml2 \
-  neutron-linuxbridge-agent neutron-l3-agent neutron-dhcp-agent \
-  neutron-metadata-agent -y
-
-vim /etc/neutron/neutron.conf
-[database]
-...
-connection = mysql+pymysql://neutron:a6fef16aa0395fa62270@controller/neutron
-
-sed 's#connection = sqlite:////var/lib/neutron/neutron.sqlite#connection = mysql+pymysql://neutron:a6fef16aa0395fa62270@controller/neutron#g' -i /etc/neutron/neutron.conf
-
-# [DEFAULT]
-# ...
-# core_plugin = ml2
-# service_plugins = router
-# allow_overlapping_ips = True
-
-sed 's#\#service_plugins =#service_plugins = router#g' -i /etc/neutron/neutron.conf
-sed 's#\#allow_overlapping_ips = false#allow_overlapping_ips = True#g'  -i /etc/neutron/neutron.conf
-
-
-# [DEFAULT]
-# ...
-# transport_url = rabbit://openstack:a6fef16aa0395fa62270@controller
-
-sed ':a;N;$!ba;s#\#transport_url = <None>#transport_url = rabbit://openstack:a6fef16aa0395fa62270@controller#' -i /etc/neutron/neutron.conf
-
-# [DEFAULT]
-# ...
-# auth_strategy = keystone
-
-sed 's#\#auth_strategy = keystone#auth_strategy = keystone#g'  -i /etc/neutron/neutron.conf
-
-# [keystone_authtoken]
-# ...
-# auth_uri = http://controller:5000
-# auth_url = http://controller:35357
-# memcached_servers = controller:11211
-# auth_type = password
-# project_domain_name = Default
-# user_domain_name = Default
-# project_name = service
-# username = neutron
-# password = a6fef16aa0395fa62270
-
-
-sed 's#\[matchmaker_redis\]#\nauth_uri = http://controller:5000\nauth_url = http://controller:35357\nmemcached_servers = controller:11211\nauth_type = password\nproject_domain_name = Default\nuser_domain_name = Default\nproject_name = service\nusername = neutron\npassword = a6fef16aa0395fa62270\n\[matchmaker_redis\]#g' -i /etc/neutron/neutron.conf
-
-
-
-# [DEFAULT]
-# ...
-# notify_nova_on_port_status_changes = True
-# notify_nova_on_port_data_changes = True
-
-sed 's#\#notify_nova_on_port_status_changes = true#notify_nova_on_port_status_changes = True#g' -i /etc/neutron/neutron.conf
-sed 's#\#notify_nova_on_port_data_changes = true#notify_nova_on_port_data_changes = true#g' -i /etc/neutron/neutron.conf
-
-# [nova]
-# ...
-# auth_url = http://controller:35357
-# auth_type = password
-# project_domain_name = Default
-# user_domain_name = Default
-# region_name = RegionOne
-# project_name = service
-# username = nova
-# password = a6fef16aa0395fa62270
-
-
-sed ':a;N;$!ba;s#\[nova\]#\[nova\]\nauth_url = http://controller:35357\nauth_type = password\nuser_domain_name = Default\nproject_domain_name = Default\nregion_name = RegionOne\nproject_name = service\nusername = nova\npassword = a6fef16aa0395fa62270\n#' -i /etc/neutron/neutron.conf
-
-
-
-# vim /etc/neutron/plugins/ml2/ml2_conf.ini
-# [ml2]
-# ...
-# type_drivers = flat,vlan,vxlan
-
-# [ml2]
-# ...
-# tenant_network_types = vxlan
-
-# [ml2]
-# ...
-# mechanism_drivers = linuxbridge,l2population
-
-# [ml2]
-# ...
-# extension_drivers = port_security
-
-# [ml2_type_flat]
-# ...
-# flat_networks = provider
-
-# [ml2_type_vxlan]
-# ...
-# vni_ranges = 1:1000
-
-# [securitygroup]
-# ...
-# enable_ipset = True
-
-
-sed 's#\#type_drivers = local,flat,vlan,gre,vxlan,geneve#type_drivers = flat,vlan,vxlan#g' -i /etc/neutron/plugins/ml2/ml2_conf.ini
-sed 's#\#tenant_network_types = local#tenant_network_types = vxlan#g'  -i /etc/neutron/plugins/ml2/ml2_conf.ini
-sed 's#\#mechanism_drivers =#mechanism_drivers = linuxbridge,l2population#g' -i /etc/neutron/plugins/ml2/ml2_conf.ini
-sed 's#\#extension_drivers =#extension_drivers = port_security#g' -i /etc/neutron/plugins/ml2/ml2_conf.ini
-sed 's#\#flat_networks = \*#flat_networks = provider#g' -i /etc/neutron/plugins/ml2/ml2_conf.ini
-sed ':a;N;$!ba;s#\#vni_ranges =#vni_ranges = 1:1000#2' -i /etc/neutron/plugins/ml2/ml2_conf.ini
-sed 's#\#enable_ipset = true#enable_ipset = True#g' -i /etc/neutron/plugins/ml2/ml2_conf.ini
-
-
-
-
-
-
-# vim /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-
-# [linux_bridge]
-# physical_interface_mappings = provider:enp0s8
-
-# [vxlan]
-# enable_vxlan = True
-# local_ip = 10.30.10.145
-# l2_population = True
-
-# [securitygroup]
-# ...
-# enable_security_group = True
-# firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
-
-
-
-
-sed 's#\#physical_interface_mappings =#physical_interface_mappings = provider:enp0s8#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#enable_vxlan = true#enable_vxlan = True#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#local_ip = <None>#local_ip = 10.30.10.145#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#l2_population = false#l2_population = True#g'  -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#enable_security_group = true#enable_security_group = True#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-sed 's#\#firewall_driver = <None>#firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver#g' -i /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-
-
-
-
-# vim /etc/neutron/l3_agent.ini
-# [DEFAULT]
-# ...
-# interface_driver = neutron.agent.linux.interface.BridgeInterfaceDriver
-
-sed 's#\#interface_driver = <None>#interface_driver = neutron.agent.linux.interface.BridgeInterfaceDriver#g' -i /etc/neutron/l3_agent.ini
-
-# vim  /etc/neutron/dhcp_agent.ini
-# [DEFAULT]
-# ...
-# interface_driver = neutron.agent.linux.interface.BridgeInterfaceDriver
-# dhcp_driver = neutron.agent.linux.dhcp.Dnsmasq
-# enable_isolated_metadata = True
-
-
-sed 's#\#interface_driver = <None>#interface_driver = neutron.agent.linux.interface.BridgeInterfaceDriver#g' -i /etc/neutron/dhcp_agent.ini
-sed 's#\#dhcp_driver = neutron.agent.linux.dhcp.Dnsmasq#dhcp_driver = neutron.agent.linux.dhcp.Dnsmasq#g' -i /etc/neutron/dhcp_agent.ini
-sed 's#\#enable_isolated_metadata = false#enable_isolated_metadata = True#g' -i /etc/neutron/dhcp_agent.ini
-#-------------------------------------------------------
-#self-service networks end
-
-
-##provider network
-#provider network start-------------------------------------------
 apt install neutron-server neutron-plugin-ml2 \
   neutron-linuxbridge-agent neutron-dhcp-agent \
   neutron-metadata-agent -y
+
+
+
+
 
 #vim /etc/neutron/neutron.conf
 
@@ -731,14 +562,6 @@ sed 's#\#dhcp_driver = neutron.agent.linux.dhcp.Dnsmasq#dhcp_driver = neutron.ag
 sed 's#\#enable_isolated_metadata = false#enable_isolated_metadata = True#g' -i /etc/neutron/dhcp_agent.ini
 
 
-
-#provider network end-------------------------------------------
-
-
-
-
-
-
 ##controller metadata_agent
 #vim /etc/neutron/metadata_agent.ini
 
@@ -783,21 +606,18 @@ service neutron-linuxbridge-agent restart
 service neutron-dhcp-agent restart
 service neutron-metadata-agent restart
 
-#self network
-service neutron-l3-agent restart
+
 
 #####此处配置运算节点网络
 
 
 
-. admin-openrc
 neutron ext-list
 openstack network agent list
 
 
-#provider network 
-#-------------------------------------------
-
+#controller
+##controller create instance networking
 . admin-openrc
 openstack network create  --share --external \
 --provider-physical-network provider \
@@ -808,46 +628,6 @@ openstack subnet create --network provider \
 --allocation-pool start=10.30.10.200,end=10.30.10.250 \
 --dns-nameserver 114.114.114.114 --gateway 10.30.10.1 \
 --subnet-range 10.30.10.0/24 provider
-#-------------------------------------------
-
-
-## self service network  start
-. admin-openrc
- openstack network create  --share --external \
-  --provider-physical-network provider \
-  --provider-network-type flat provider
-
-openstack subnet create --network provider \
---allocation-pool start=10.30.10.210,end=10.30.10.250 \
---dns-nameserver 114.114.114.114 --gateway 10.30.10.1 \
---subnet-range 10.30.10.0/24 provider
-
-
-
-. demo-openrc
-openstack network create selfservice
-
-openstack subnet create --network selfservice \
-  --dns-nameserver 114.114.114.114 --gateway 172.16.1.1 \
-  --subnet-range 172.16.1.0/24 selfservice
-
-. demo-openrc
-openstack router create router
-
-neutron router-interface-add router selfservice
-neutron router-gateway-set router provider
-
-. admin-openrc
-ip netns
-neutron router-port-list router
-
-ping -c 4 8.8.8.8
-
-## self service network  end
-
-
-
-
 
 ## create flavor
 openstack flavor create --id 0 --vcpus 1 --ram 64 --disk 1 m1.nano
@@ -856,30 +636,12 @@ openstack flavor create --id 0 --vcpus 1 --ram 64 --disk 1 m1.nano
 ssh-keygen -q -N ""
 openstack keypair create --public-key ~/.ssh/id_rsa.pub mykey
 
-openstack keypair list
+
 ## add security rules
 openstack security group rule create --proto icmp default
 openstack security group rule create --proto tcp --dst-port 22 default
 
-
-##self-service network lunch start
-. demo-openrc
-openstack flavor list
-openstack image list
-openstack network list
-openstack security group list
-
-
-openstack server create --flavor m1.nano --image cirros \
-  --nic net-id=e47041c9-008c-4c1b-8fe5-99120d8765b8 --security-group default \
-  --key-name mykey selfservice-instance
-
-openstack server list
-openstack console url show selfservice-instance
-
-##self-service network lunch end
-
-## provider lunch  start
+## lunch 
 . demo-openrc
 openstack flavor list
 openstack image list
@@ -891,12 +653,11 @@ openstack server create --flavor m1.nano --image cirros  --security-group defaul
 
 openstack server list
 openstack console url show provider-instance
-## provider lunch  end
 
 
 
-##其它 
-###重新启动所有服务
+
+##重新启动所有服务
 service nova-api restart
 service nova-consoleauth restart
 service nova-scheduler restart
