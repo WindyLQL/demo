@@ -372,7 +372,7 @@ echo -e "[keystone_authtoken]\nauth_uri = http://controller:5000\nauth_url = htt
 
 
 ////###############配置错误
-echo -e "[vnc]\nvncserver_listen = $my_ip\nvncserver_proxyclient_address = $my_ip\n" >> /etc/nova/nova.conf
+echo -e "[vnc]\nvncserver_listen = \$my_ip\nvncserver_proxyclient_address = \$my_ip\n" >> /etc/nova/nova.conf
 
 
 
@@ -458,7 +458,7 @@ sed 's#\[database\]#transport_url = rabbit://openstack:a6fef16aa0395fa62270@cont
 
 echo -e "[keystone_authtoken]\nauth_uri = http://controller:5000\nauth_url = http://controller:35357\nmemcached_servers = controller:11211\nauth_type = password\nproject_domain_name = Default\nuser_domain_name = Default\nproject_name = service\nusername = nova\npassword = a6fef16aa0395fa62270\n" >> /etc/nova/nova.conf
 
-echo -e "[vnc]\nenabled = True\nvncserver_listen = 0.0.0.0\nvncserver_proxyclient_address = $my_ip\nnovncproxy_base_url = http://controller:6080/vnc_auto.html\n" >> /etc/nova/nova.conf
+echo -e "[vnc]\nenabled = True\nvncserver_listen = 0.0.0.0\nvncserver_proxyclient_address = \$my_ip\nnovncproxy_base_url = http://controller:6080/vnc_auto.html\n" >> /etc/nova/nova.conf
 
 echo -e "[glance]\napi_servers = http://controller:9292\n" >> /etc/nova/nova.conf
 
@@ -590,7 +590,7 @@ password = a6fef16aa0395fa62270
 
 
 
-sed ':a;N;$!ba;s#\[nova\]#\[nova\]\nauth_url = http://controller:35357\nauth_type = password\nproject_domain_name = Default\nregion_name = RegionOne\nproject_name = service\nusername = nova\npassword = a6fef16aa0395fa62270\n#' -i /etc/neutron/neutron.conf
+sed ':a;N;$!ba;s#\[nova\]#\[nova\]\nauth_url = http://controller:35357\nauth_type = password\nuser_domain_name = Default\nproject_domain_name = Default\nregion_name = RegionOne\nproject_name = service\nusername = nova\npassword = a6fef16aa0395fa62270\n#' -i /etc/neutron/neutron.conf
 
 
 
@@ -862,15 +862,17 @@ openstack console url show provider-instance
 
 
 
-service mysql restart
-service memcached restart
-service apache2 restart
-service nova-compute restart
+##重新启动所有服务
+service nova-api restart
+service nova-consoleauth restart
+service nova-scheduler restart
+service nova-conductor restart
+service nova-novncproxy restart
 service nova-api restart
 service neutron-server restart
+service neutron-linuxbridge-agent restart
 service neutron-dhcp-agent restart
 service neutron-metadata-agent restart
-
 
 
 
