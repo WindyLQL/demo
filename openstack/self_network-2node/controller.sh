@@ -909,5 +909,8 @@ service neutron-dhcp-agent restart
 service neutron-metadata-agent restart
 
 
+/etc/init.d/rabbitmq-server status
+service rabbitmq-server restart
+
 
 
