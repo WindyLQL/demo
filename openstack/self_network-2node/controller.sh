@@ -1,6 +1,10 @@
 
 #更换为国内镜像源
 sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+
+#更换成阿里的
+sed -i 's/cn.archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
+
 apt-get update  
 
 #动态生成密码可用于后文
